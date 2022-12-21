@@ -9,6 +9,8 @@ use zokrates_ark::Ark;
 use zokrates_ast::ir::{self, ProgEnum};
 #[cfg(feature = "bellman")]
 use zokrates_bellman::Bellman;
+#[cfg(feature = "bellman")]
+use zokrates_bellman_plonk::Bellman as BellmanPlonk;
 use zokrates_common::constants;
 use zokrates_common::helpers::*;
 use zokrates_field::Field;
@@ -160,6 +162,31 @@ pub fn exec(sub_matches: &ArgMatches) -> Result<(), String> {
                 ProgEnum::Bw6_761Program(p) => {
                     cli_setup_universal::<_, _, Marlin, Ark>(p, setup, sub_matches)
                 }
+            }
+        }
+        #[cfg(feature = "bellman")]
+        Parameters(BackendParameter::Bellman, _, SchemeParameter::PLONK) => {
+            let setup_path = Path::new(sub_matches.value_of("universal-setup-path").unwrap());
+            let setup_file = File::open(&setup_path)
+                .map_err(|why| format!("Couldn't open {}: {}\nExpected an universal setup, make sure `zokrates universal-setup` was run`", setup_path.display(), why))?;
+
+            let mut reader = BufReader::new(setup_file);
+
+            let mut setup = vec![];
+            use std::io::Read;
+
+            reader
+                .read_to_end(&mut setup)
+                .map_err(|_| "Cannot read universal setup".to_string())?;
+
+            match prog {
+                ProgEnum::Bn128Program(p) => {
+                    cli_setup_universal::<_, _, Plonk, BellmanPlonk>(p, setup, sub_matches)
+                }
+                ProgEnum::Bls12_381Program(p) => {
+                    cli_setup_universal::<_, _, Plonk, BellmanPlonk>(p, setup, sub_matches)
+                }
+                _ => unreachable!(),
             }
         }
         _ => unreachable!(),

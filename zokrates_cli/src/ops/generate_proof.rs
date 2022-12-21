@@ -9,6 +9,8 @@ use zokrates_ark::Ark;
 use zokrates_ast::ir::{self, ProgEnum};
 #[cfg(feature = "bellman")]
 use zokrates_bellman::Bellman;
+#[cfg(feature = "bellman")]
+use zokrates_bellman_plonk::Bellman as BellmanPlonk;
 use zokrates_common::constants;
 use zokrates_common::helpers::*;
 use zokrates_field::Field;
@@ -103,6 +105,16 @@ pub fn exec(sub_matches: &ArgMatches) -> Result<(), String> {
             ProgEnum::Bn128Program(p) => cli_generate_proof::<_, _, G16, Bellman>(p, sub_matches),
             ProgEnum::Bls12_381Program(p) => {
                 cli_generate_proof::<_, _, G16, Bellman>(p, sub_matches)
+            }
+            _ => unreachable!(),
+        },
+        #[cfg(feature = "bellman")]
+        Parameters(BackendParameter::Bellman, _, SchemeParameter::PLONK) => match prog {
+            ProgEnum::Bn128Program(p) => {
+                cli_generate_proof::<_, _, Plonk, BellmanPlonk>(p, sub_matches)
+            }
+            ProgEnum::Bls12_381Program(p) => {
+                cli_generate_proof::<_, _, Plonk, BellmanPlonk>(p, sub_matches)
             }
             _ => unreachable!(),
         },
